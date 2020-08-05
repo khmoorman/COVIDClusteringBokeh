@@ -1,0 +1,67 @@
+from bokeh.models import CustomJS
+
+# handle the currently selected article
+def selected_code():
+    code = """
+            var text = [];
+            var screen_name = [];
+            cb_data.source.selected.indices.forEach(index => text.push(source.data['text'][index]));
+            cb_data.source.selected.indices.forEach(index => screen_name.push(source.data['screen_name'][index]));
+            text = "<h4>" + text[0].toString().replace(/<br>/g, ' ') + "</h4>";
+            screen_name = "<p1><b>screen_name:</b> " + authors[0].toString().replace(/<br>/g, ' ') + "<br>"
+            current_selection.text = text + screen_name
+            current_selection.change.emit();
+    """
+    return code
+
+# handle the keywords and search
+def input_callback(plot, source, out_text, topics): 
+
+    # slider call back for cluster selection
+    callback = CustomJS(args=dict(p=plot, source=source, out_text=out_text, topics=topics), code="""
+				var key = text.value;
+				key = key.toLowerCase();
+				var cluster = slider.value;
+                var data = source.data; 
+                
+                
+                x = data['x'];
+                y = data['y'];
+                x_backup = data['x_backup'];
+                y_backup = data['y_backup'];
+                text = data['text'];
+                screen_name = data['screen_name'];
+                if (cluster == '11') {
+                    out_text.text = 'Keywords: Slide to specific cluster to see the keywords.';
+                    for (i = 0; i < x.length; i++) {
+						if(text[i].includes(key) || 
+						screen_name[i].includes(key) ||  {
+							x[i] = x_backup[i];
+							y[i] = y_backup[i];
+						} else {
+							x[i] = undefined;
+							y[i] = undefined;
+						}
+                    }
+                }
+                else {
+                    out_text.text = 'Keywords: ' + topics[Number(cluster)];
+                    for (i = 0; i < x.length; i++) {
+                        if(labels[i] == cluster) {
+							if(text[i].includes(key) || 
+							screen_name[i].includes(key) ||  {
+								x[i] = x_backup[i];
+								y[i] = y_backup[i];
+							} else {
+								x[i] = undefined;
+								y[i] = undefined;
+							}
+                        } else {
+                            x[i] = undefined;
+                            y[i] = undefined;
+                        }
+                    }
+                }
+            source.change.emit();
+            """)
+    return callback
